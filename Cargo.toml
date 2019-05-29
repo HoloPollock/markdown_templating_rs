@@ -1,0 +1,10 @@
+[package]
+name = "rs_markdown_templating"
+version = "0.1.0"
+authors = ["Quinn Pollock <mattpollock4@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+regex = "1.1.6"
+lazy_static = "1.3.0"
+comrak = "0.6.2"
