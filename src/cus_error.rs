@@ -56,6 +56,7 @@ impl fmt::Display for ConvertError {
         }
     }
 }
+
 impl From<io::Error> for ConvertError {
     fn from(error: io::Error) -> Self {
         ConvertError::IoError(error)
@@ -65,5 +66,17 @@ impl From<io::Error> for ConvertError {
 impl From<std::string::FromUtf8Error> for ConvertError {
     fn from(error: std::string::FromUtf8Error) -> Self {
         ConvertError::FromUtfError(error)
+    }
+}
+
+pub enum ToHtmlError {
+    Snippet(SnippitError),
+    IoError(io::Error),
+    Convert(ConvertError),
+}
+
+impl From<io::Error> for ToHtmlError {
+    fn from(error: io::Error) -> Self {
+        ToHtmlError::IoError(error)
     }
 }

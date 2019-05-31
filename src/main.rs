@@ -14,9 +14,7 @@ use std::io::BufReader;
 mod ast_nodes_iter;
 mod cus_error;
 
-use crate::cus_error::ConvertError;
-use crate::cus_error::RegexError;
-use crate::cus_error::SnippitError;
+use crate::cus_error::{ConvertError, RegexError, SnippitError, ToHtmlError};
 
 static VARIBLEMARKER: &'static str = "$$";
 
@@ -36,9 +34,9 @@ fn make_snippits(string_to_read: &str) -> Result<HashMap<String, String>, Snippi
         static ref VALUE: Regex = Regex::new(r" .*").unwrap();
     }
     let mut snip = HashMap::new();
-    let mut lines = string_to_read.lines();
+    let lines = string_to_read.lines();
 
-    while let Some(x) = lines.next() {
+    for x in lines {
         let buf = String::from(x);
         if !buf.contains("******") {
             let key_val = KEY.find(&buf).ok_or(RegexError);
@@ -52,8 +50,8 @@ fn make_snippits(string_to_read: &str) -> Result<HashMap<String, String>, Snippi
 }
 
 fn snippit_replace<'a>(root: &'a AstNode<'a>, str_search: &str, string_replace: &str) {
-    ast_nodes_iter::iter_nodes(root, &|node| match *(&mut node.data.borrow_mut().value) {
-        NodeValue::Text(ref mut text) => {
+    ast_nodes_iter::iter_nodes(root, &|node| {
+        if let NodeValue::Text(ref mut text) = node.data.borrow_mut().value {
             let orig = std::mem::replace(text, vec![]);
             *text = String::from_utf8(orig)
                 .unwrap() //deal With later
@@ -61,20 +59,19 @@ fn snippit_replace<'a>(root: &'a AstNode<'a>, str_search: &str, string_replace: 
                 .as_bytes()
                 .to_vec();
         }
-        _ => (),
     })
 }
 
-fn snippit_replacer_to_markdown(
+fn snippet_replacer_to_markdown(
     md: &str,
-    snipits: HashMap<String, String>,
+    snippets: HashMap<String, String>,
 ) -> Result<String, ConvertError> {
     let arena = Arena::new();
     let mut html = vec![];
 
     let root = parse_document(&arena, md, &ComrakOptions::default());
 
-    for (key, value) in &snipits {
+    for (key, value) in &snippets {
         snippit_replace(
             root,
             &(VARIBLEMARKER.to_string() + &key + VARIBLEMARKER),
@@ -86,6 +83,29 @@ fn snippit_replacer_to_markdown(
     Ok(String::from_utf8(html)?)
 }
 
+pub fn markdown_to_html(filename: &str) -> Result<String, ToHtmlError> {
+    let mut buf = String::new();
+    let f = File::open(filename)?;
+    let mut f = BufReader::new(f);
+    while !buf.contains("******") {
+        f.read_line(&mut buf)?;
+    }
+    let snippets = make_snippits(&buf);
+    buf.clear();
+    f.read_to_string(&mut buf)?;
+
+    match snippets {
+        Err(error) => Err(ToHtmlError::Snippet(error)),
+        Ok(x) => {
+            let html_output = snippet_replacer_to_markdown(&buf, x);
+            match html_output {
+                Err(error) => Err(ToHtmlError::Convert(error)),
+                Ok(y) => Ok(y),
+            }
+        }
+    }
+}
+
 fn main() {
     let mut buf = String::new();
     let f = File::open("testtemplate.md").unwrap();
@@ -93,14 +113,14 @@ fn main() {
     while !buf.contains("******") {
         f.read_line(&mut buf).unwrap();
     }
-    let snippits = make_snippits(&buf);
+    let snippets = make_snippits(&buf);
     buf.clear();
     f.read_to_string(&mut buf).unwrap();
 
-    match snippits {
+    match snippets {
         Err(error) => println!("Error: {}", error),
         Ok(x) => {
-            let html_output = snippit_replacer_to_markdown(&buf, x);
+            let html_output = snippet_replacer_to_markdown(&buf, x);
             match html_output {
                 Err(error) => println!("Error: {}", error),
                 Ok(y) => println!("{}", y),
