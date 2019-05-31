@@ -107,24 +107,8 @@ pub fn markdown_to_html(filename: &str) -> Result<String, ToHtmlError> {
 }
 
 fn main() {
-    let mut buf = String::new();
-    let f = File::open("testtemplate.md").unwrap();
-    let mut f = BufReader::new(f);
-    while !buf.contains("******") {
-        f.read_line(&mut buf).unwrap();
-    }
-    let snippets = make_snippits(&buf);
-    buf.clear();
-    f.read_to_string(&mut buf).unwrap();
-
-    match snippets {
-        Err(error) => println!("Error: {}", error),
-        Ok(x) => {
-            let html_output = snippet_replacer_to_markdown(&buf, x);
-            match html_output {
-                Err(error) => println!("Error: {}", error),
-                Ok(y) => println!("{}", y),
-            }
-        }
+    match markdown_to_html("testtemplate.md") {
+        Err(error) => println!("Error {}", error),
+        Ok(html) => println!("{}", html),
     }
 }

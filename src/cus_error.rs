@@ -80,3 +80,13 @@ impl From<io::Error> for ToHtmlError {
         ToHtmlError::IoError(error)
     }
 }
+
+impl fmt::Display for ToHtmlError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            ToHtmlError::IoError(ref e) => e.fmt(f),
+            ToHtmlError::Snippet(ref e) => e.fmt(f),
+            ToHtmlError::Convert(ref e) => e.fmt(f),
+        }
+    }
+}
