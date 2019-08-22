@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate lazy_static;
 extern crate comrak;
+extern crate logos;
 extern crate regex;
 
 use comrak::nodes::{AstNode, NodeValue};
@@ -13,14 +14,12 @@ use std::io::BufReader;
 
 mod ast_nodes_iter;
 mod cus_error;
+mod utils;
 
-use crate::cus_error::{ConvertError, RegexError, SnippitError, ToHtmlError};
+use crate::cus_error::*;
+use crate::utils::StringUtils;
 
 static VARIBLEMARKER: &'static str = "$$";
-
-trait StringUtils {
-    fn substring(&self, start: usize, len: usize) -> Self;
-}
 
 impl StringUtils for String {
     fn substring(&self, start: usize, len: usize) -> Self {
